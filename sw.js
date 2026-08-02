@@ -9,7 +9,7 @@
  * 注意：本项目部署在 GitHub Pages 子路径（/english-study-site/）下，
  *       故所有缓存 key 都带相对路径语义，缓存名含版本以便更新。
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE_NAME = 'english-study-' + VERSION;
 
 // 离线核心资源（相对路径，适配任意部署子路径）
@@ -31,6 +31,7 @@ const CORE_ASSETS = [
   './js/review.js',
   './js/storage.js',
   './js/sync.js',
+  './js/oss.js',
   './js/ui.js'
 ];
 
