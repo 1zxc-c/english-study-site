@@ -25,6 +25,20 @@
     });
   }
 
+  /**
+   * 每次渲染创建一个全新容器挂到 #view-root，监听器绑定在容器上。
+   * 下次渲染时旧容器连同其监听器一起被替换 → 事件委托不随重复渲染累加
+   * （曾导致弹窗开两个、关闭要点多次）。
+   */
+  function mountRoot(html) {
+    const host = document.getElementById('view-root');
+    host.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    host.appendChild(wrap);
+    return wrap;
+  }
+
   function toast(msg, isError) {
     const root = document.getElementById('toast-root');
     const t = document.createElement('div');
@@ -174,10 +188,8 @@
       html += '</ul>';
     }
 
-    document.getElementById('view-root').innerHTML = html;
-    document.getElementById('view-root').dataset.lib = lib;
-
-    const root = document.getElementById('view-root');
+    const root = mountRoot(html);
+    root.dataset.lib = lib;
 
     // 点击行（非按钮）→ 进详情
     delegate(root, 'click', '.vrow', e => {
@@ -499,8 +511,7 @@
         </div>
       </div>`;
 
-    document.getElementById('view-root').innerHTML = html;
-    const root = document.getElementById('view-root');
+    const root = mountRoot(html);
     initSplitter(root);
 
     // 笔记绑定
@@ -573,16 +584,10 @@
       const m = item.markers.find(x => x.id === mid);
       if (m) App.Player.jumpTo(m.time);
     });
-    delegate(root, 'click', '[data-act=rename-marker]', async (e, el) => {
+    delegate(root, 'click', '[data-act=edit-marker]', (e, el) => {
       const mid = el.dataset.mid;
       const m = item.markers.find(x => x.id === mid);
-      if (!m) return;
-      const name = prompt('节点名称（如：核心语法、生词段落、跟读片段）', m.label);
-      if (name && name.trim()) {
-        m.label = name.trim();
-        App.Storage.save(App.state.data);
-        renderDetail(id);
-      }
+      if (m) editMarker(item, m);
     });
     delegate(root, 'click', '[data-act=status-learned]', async () => {
       if (item.status === S().daily.LEARNED || item.status === S().daily.DONE) return;
@@ -656,7 +661,7 @@
         <span class="marker-tag tag tag-${esc(m.cat || 'other')}">${esc(m.cat || '其他')}</span>
         <span class="marker-time">${fmtMarkerTime(m.time)}</span>
         <button class="marker-label" data-act="marker-jump" data-mid="${m.id}" title="跳转到该节点">${esc(m.label)}</button>
-        <button class="btn btn-xs btn-ghost" data-act="rename-marker" data-mid="${m.id}">改名</button>
+        <button class="btn btn-xs btn-ghost" data-act="edit-marker" data-mid="${m.id}">编辑</button>
         <button class="btn btn-xs btn-ghost-danger" data-act="del-marker" data-mid="${m.id}">删</button>
       </li>`).join('');
     return `
@@ -752,6 +757,61 @@
       closeModal(overlay);
       renderDetail(item.id);
       toast(`已添加「${cat}：${fmtMarkerTime(time)}」`);
+    };
+  }
+
+  /** 编辑节点：时间/分类/备注 全部可改（弹窗预填当前值） */
+  function editMarker(item, m) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    App.UI.activeModal = overlay;
+    document.body.classList.add('modal-open');
+    overlay.innerHTML = `
+      <div class="modal">
+        <h3 class="modal-title">编辑关键节点</h3>
+        <div class="modal-body">
+          <div class="form-row">
+            <span class="form-label">时间</span>
+            <input class="inp mk-min" type="number" min="0" max="999" value="${Math.floor(m.time / 60)}" style="width:70px"> 分
+            <input class="inp mk-sec" type="number" min="0" max="59" value="${m.time % 60}" style="width:70px"> 秒
+          </div>
+          <div class="form-row">
+            <span class="form-label">分类</span>
+            <select class="sel mk-cat">
+              ${MARKER_CATS.map(c => `<option value="${c}" ${c === m.cat ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-row">
+            <span class="form-label">备注</span>
+            <input class="inp mk-label" placeholder="可选，如：核心语法（留空用分类名）" style="flex:1" value="${esc(m.label)}">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" data-act="cancel">取消</button>
+          <button class="btn btn-primary" data-act="ok">保存</button>
+        </div>
+      </div>`;
+    document.getElementById('modal-root').appendChild(overlay);
+    wireModalDismiss(overlay);
+    const $ = sel => overlay.querySelector(sel);
+    const minInp = $('.mk-min'), secInp = $('.mk-sec');
+    // 秒数超过 59 自动进位到分
+    secInp.addEventListener('input', () => {
+      const s = parseInt(secInp.value) || 0;
+      if (s >= 60) { minInp.value = (parseInt(minInp.value) || 0) + Math.floor(s / 60); secInp.value = s % 60; }
+    });
+    $('[data-act=cancel]').onclick = () => closeModal(overlay);
+    $('[data-act=ok]').onclick = () => {
+      const min = parseInt(minInp.value) || 0;
+      const sec = parseInt(secInp.value) || 0;
+      if (min < 0 || sec < 0 || sec > 59) { toast('时间无效', true); return; }
+      m.time = min * 60 + sec;
+      m.cat = $('.mk-cat').value;
+      m.label = ($('.mk-label').value || '').trim() || m.cat;
+      App.Storage.save(App.state.data);
+      closeModal(overlay);
+      renderDetail(item.id);
+      toast(`已更新「${m.cat}：${fmtMarkerTime(m.time)}」`);
     };
   }
 
@@ -1248,7 +1308,7 @@
     activeModal: null,
     renderList, renderDetail, refreshDetailState,
     openImportModal, openTransferModal, openRecatModal, openProxyModal, confirmModal, closeModal, toast,
-    addMarkerAtCurrentTime, jumpPrevMarker, jumpNextMarker,
+    addMarkerAtCurrentTime, editMarker, jumpPrevMarker, jumpNextMarker,
     bindFooter, delegate, esc, wireModalDismiss
   };
 })();
