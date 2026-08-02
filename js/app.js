@@ -5,6 +5,9 @@
   'use strict';
   window.App = window.App || {};
 
+  // 代码版本：与 index.html 脚本 ?v= 同步。缓存里旧代码版本不符时开机自检会强刷。
+  const APP_VERSION = '5';
+
   /* ---------- 全局状态 ---------- */
 
   App.state = {
@@ -93,6 +96,17 @@
   function boot() {
     App.state.data = App.Storage.load();
     App.Player.bindShortcuts();
+
+    // 开机自检：若本次加载的代码版本与本地记录不符（= 缓存喂了旧 JS），自动强制刷新
+    try {
+      const saved = localStorage.getItem('englishSite.appVer');
+      if (saved && saved !== APP_VERSION && location.reload && !sessionStorage.getItem('forcedReload')) {
+        sessionStorage.setItem('forcedReload', '1');
+        location.reload();   // 重载即从网络拉最新 index.html + ?v=5 脚本
+        return;              // 后续 boot 不再执行（页面即将重载）
+      }
+      localStorage.setItem('englishSite.appVer', APP_VERSION);
+    } catch (e) { /* 存储不可用时忽略自检 */ }
 
     // 顶栏 Tab 切换
     document.getElementById('tabs').addEventListener('click', e => {
