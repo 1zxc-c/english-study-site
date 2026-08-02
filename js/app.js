@@ -6,7 +6,7 @@
   window.App = window.App || {};
 
   // 代码版本：与 index.html 脚本 ?v= 同步。缓存里旧代码版本不符时开机自检会强刷。
-  const APP_VERSION = '5';
+  const APP_VERSION = '6';
 
   /* ---------- 全局状态 ---------- */
 

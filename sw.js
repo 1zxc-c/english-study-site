@@ -10,7 +10,7 @@
  * 注意：本项目部署在 GitHub Pages 子路径（/english-study-site/）下，
  *       故所有缓存 key 都带相对路径语义，缓存名含版本以便更新。
  */
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CACHE_NAME = 'english-study-' + VERSION;
 
 // 离线核心资源（相对路径，适配任意部署子路径）
@@ -54,10 +54,10 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // 页面导航（HTML）：网络优先，离线时回退缓存
+  // 页面导航（HTML）：强制绕过 HTTP 缓存拿最新（GitHub Pages 默认缓存 10 分钟），离线时回退缓存
   if (e.request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request)
+      fetch(e.request, { cache: 'no-store' })
         .then(res => {
           const copy = res.clone();
           caches.open(CACHE_NAME).then(c => c.put('./index.html', copy));
@@ -68,8 +68,8 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // JS 资源：网络优先（保证功能永远最新），断网时回退缓存
-  if (e.request.destination === 'script' || /\.js(\?.*)?$/.test(url.pathname)) {
+  // JS / CSS 资源：网络优先（保证功能永远最新），断网时回退缓存
+  if (e.request.destination === 'script' || e.request.destination === 'style' || /\.(js|css)(\?.*)?$/.test(url.pathname)) {
     e.respondWith(
       fetch(e.request)
         .then(res => {
