@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>英语学习</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="英语学习">
+<meta name="theme-color" content="#4f46e5">
+</head>
+<body>
+
+<header id="topbar">
+  <h1 class="logo"><img src="icons/logo-top.png" alt="英语学习" class="logo-img"> 英语学习</h1>
+  <nav class="tabs" id="tabs">
+    <button class="tab" data-tab="daily">每日学习</button>
+    <button class="tab" data-tab="interest">感兴趣视频</button>
+  </nav>
+  <button id="btn-import" class="btn btn-primary">＋ 导入视频</button>
+</header>
+
+<main id="view-root"></main>
+
+<div id="due-banner" hidden></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<footer id="footer">
+  <span>本地数据 · 单机使用</span>
+  <span class="footer-links">
+    <a href="#" id="link-proxy" title="配置 Cloudflare Worker，在线版 B站站内播放">云代理</a>
+    <a href="#" id="link-sync" title="配置 WebDAV 网盘，跨设备同步数据">数据同步</a>
+    <a href="#" id="link-export" title="下载数据备份文件">导出备份</a>
+    <a href="#" id="link-import" title="从备份文件恢复数据">导入备份</a>
+  </span>
+</footer>
+
+<input type="file" id="file-import" accept=".json" hidden>
+
+<!-- 经典脚本，按依赖顺序加载（file 协议下 ES module 会被 CORS 拦截，故不用 module） -->
+<script src="js/storage.js"></script>
+<script src="js/data.js"></script>
+<script src="js/parse.js"></script>
+<script src="js/bilibili.js"></script>
+<script src="js/review.js"></script>
+<script src="js/player.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
