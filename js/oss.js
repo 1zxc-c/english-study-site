@@ -136,7 +136,11 @@
     if (resp.status === 404) return { ok: false, msg: '云端还没有数据，请先上传', notFound: true };
     if (!resp.ok) {
       const t = await resp.text().catch(() => '');
-      return { ok: false, msg: '拉取失败 HTTP ' + resp.status + (t.includes('AccessDenied') ? '（密钥权限不足）' : '') };
+      const code = (t.match(/<Code>([^<]+)/) || [])[1];
+      const hint = code === 'AccessDenied' ? '（密钥权限不足，检查 RAM 授权与密钥）'
+        : code === 'SignatureDoesNotMatch' ? '（签名不匹配，浏览器可能用了旧缓存，请强制刷新）'
+        : code ? `（${code}）` : '';
+      return { ok: false, msg: '拉取失败 HTTP ' + resp.status + hint };
     }
     let j;
     try { j = await resp.json(); } catch (e) { return { ok: false, msg: '云端数据不是有效 JSON' }; }
