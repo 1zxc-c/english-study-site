@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=8">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -41,6 +41,7 @@
     <a href="#" id="link-sync" title="配置 WebDAV 网盘，跨设备同步数据">数据同步</a>
     <a href="#" id="link-export" title="下载数据备份文件">导出备份</a>
     <a href="#" id="link-import" title="从备份文件恢复数据">导入备份</a>
+    <a href="#" id="link-force" title="强制更新：清除本地缓存并重新加载最新版">强制更新</a>
   </span>
 </footer>
 
@@ -48,18 +49,18 @@
 
 <!-- 经典脚本，按依赖顺序加载（file 协议下 ES module 会被 CORS 拦截，故不用 module）
      APP_VERSION 用于开机自检：缓存里的旧代码会因版本不符被自动强刷 -->
-<script src="js/storage.js?v=7"></script>
-<script src="js/data.js?v=7"></script>
-<script src="js/parse.js?v=7"></script>
-<script src="js/bilibili.js?v=7"></script>
-<script src="js/review.js?v=7"></script>
-<script src="js/player.js?v=7"></script>
-<script src="js/notes.js?v=7"></script>
-<script src="js/sync.js?v=7"></script>
+<script src="js/storage.js?v=8"></script>
+<script src="js/data.js?v=8"></script>
+<script src="js/parse.js?v=8"></script>
+<script src="js/bilibili.js?v=8"></script>
+<script src="js/review.js?v=8"></script>
+<script src="js/player.js?v=8"></script>
+<script src="js/notes.js?v=8"></script>
+<script src="js/sync.js?v=8"></script>
 <script src="vendor/aliyun-oss-sdk.min.js"></script>
-<script src="js/oss.js?v=7"></script>
-<script src="js/ui.js?v=7"></script>
-<script src="js/app.js?v=7"></script>
+<script src="js/oss.js?v=8"></script>
+<script src="js/ui.js?v=8"></script>
+<script src="js/app.js?v=8"></script>
 <script>
 // 兜底自检：boot 正常会置 window.__APP_OK = true。8 秒内未就绪（= 旧缓存/坏代码）→ 带版本戳强刷一次
 (function () {

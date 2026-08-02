@@ -12,7 +12,7 @@
  * 注意：本项目部署在 GitHub Pages 子路径（/english-study-site/）下，
  *       故所有缓存 key 都带相对路径语义，缓存名含版本以便更新。
  */
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CACHE_NAME = 'english-study-' + VERSION;
 
 // 离线核心资源（相对路径 + 版本戳，适配任意部署子路径）
@@ -60,6 +60,18 @@ self.addEventListener('activate', e => {
       .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+// 新 SW 接管后：通知所有受控页面「清缓存 + 重载」→ 彻底顶掉旧 SW 喂的旧代码
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'forceUpdate') {
+    e.waitUntil(
+      caches.keys()
+        .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+        .then(() => self.clients.matchAll({ type: 'window' }))
+        .then(clients => clients.forEach(c => c.postMessage({ type: 'forceReload' })))
+    );
+  }
 });
 
 self.addEventListener('fetch', e => {
