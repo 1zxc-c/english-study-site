@@ -1,0 +1,10 @@
+node_modules/
+*.log
+.DS_Store
+.wrangler/
+
+# Tencent Cloud EdgeOne
+.env
+.edgeone/*
+.tef_dist/*
+  
