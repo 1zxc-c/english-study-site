@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<link rel="stylesheet" href="css/style.css?v=6">
+<link rel="stylesheet" href="css/style.css?v=7">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -34,7 +34,7 @@
 <div id="toast-root"></div>
 
 <footer id="footer">
-  <span>英语学习 · 数据可云同步</span>
+  <span>英语学习 · 数据可云同步 · <span id="ver-tag">v0</span></span>
   <span class="footer-links">
     <a href="#" id="link-proxy" title="配置 Cloudflare Worker，在线版 B站站内播放">云代理</a>
     <a href="#" id="link-oss" title="配置阿里云 OSS，多设备数据同步（在线版可用）">云同步</a>
@@ -48,17 +48,27 @@
 
 <!-- 经典脚本，按依赖顺序加载（file 协议下 ES module 会被 CORS 拦截，故不用 module）
      APP_VERSION 用于开机自检：缓存里的旧代码会因版本不符被自动强刷 -->
-<script src="js/storage.js?v=6"></script>
-<script src="js/data.js?v=6"></script>
-<script src="js/parse.js?v=6"></script>
-<script src="js/bilibili.js?v=6"></script>
-<script src="js/review.js?v=6"></script>
-<script src="js/player.js?v=6"></script>
-<script src="js/notes.js?v=6"></script>
-<script src="js/sync.js?v=6"></script>
+<script src="js/storage.js?v=7"></script>
+<script src="js/data.js?v=7"></script>
+<script src="js/parse.js?v=7"></script>
+<script src="js/bilibili.js?v=7"></script>
+<script src="js/review.js?v=7"></script>
+<script src="js/player.js?v=7"></script>
+<script src="js/notes.js?v=7"></script>
+<script src="js/sync.js?v=7"></script>
 <script src="vendor/aliyun-oss-sdk.min.js"></script>
-<script src="js/oss.js?v=6"></script>
-<script src="js/ui.js?v=6"></script>
-<script src="js/app.js?v=6"></script>
+<script src="js/oss.js?v=7"></script>
+<script src="js/ui.js?v=7"></script>
+<script src="js/app.js?v=7"></script>
+<script>
+// 兜底自检：boot 正常会置 window.__APP_OK = true。8 秒内未就绪（= 旧缓存/坏代码）→ 带版本戳强刷一次
+(function () {
+  setTimeout(function () {
+    if (window.__APP_OK) return;
+    if (location.search.indexOf('frc=1') >= 0) return;   // 已强刷过一次，不再循环
+    location.replace(location.pathname + '?frc=1' + location.hash);
+  }, 8000);
+})();
+</script>
 </body>
 </html>

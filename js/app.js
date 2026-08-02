@@ -6,7 +6,7 @@
   window.App = window.App || {};
 
   // 代码版本：与 index.html 脚本 ?v= 同步。缓存里旧代码版本不符时开机自检会强刷。
-  const APP_VERSION = '6';
+  const APP_VERSION = '7';
 
   /* ---------- 全局状态 ---------- */
 
@@ -97,12 +97,17 @@
     App.state.data = App.Storage.load();
     App.Player.bindShortcuts();
 
+    // 兜底自检后强刷进来的（?frc=1）：跳过可能误伤的自检，直接进入正常流程
+    if (location.search.indexOf('frc=1') >= 0) {
+      try { sessionStorage.removeItem('forcedReload'); localStorage.setItem('englishSite.appVer', APP_VERSION); } catch (e) { /* ignore */ }
+    }
+
     // 开机自检：若本次加载的代码版本与本地记录不符（= 缓存喂了旧 JS），自动强制刷新
     try {
       const saved = localStorage.getItem('englishSite.appVer');
       if (saved && saved !== APP_VERSION && location.reload && !sessionStorage.getItem('forcedReload')) {
         sessionStorage.setItem('forcedReload', '1');
-        location.reload();   // 重载即从网络拉最新 index.html + ?v=5 脚本
+        location.reload();   // 重载即从网络拉最新 index.html + ?v=7 脚本
         return;              // 后续 boot 不再执行（页面即将重载）
       }
       localStorage.setItem('englishSite.appVer', APP_VERSION);
@@ -148,6 +153,15 @@
       const dismissed = sessionStorage.getItem('dueDismissed') === '1';
       if (!dismissed) renderDueBanner();
     } catch (e) { renderDueBanner(); }
+
+    // 就绪标记：页面底部兜底自检在 8 秒内看到它则不强制刷新（index.html 内联脚本读取）
+    window.__APP_OK = true;
+
+    // 页脚显示当前代码版本（一眼看出加载的是新是旧）
+    try {
+      const tag = document.getElementById('ver-tag');
+      if (tag) tag.textContent = 'v' + APP_VERSION;
+    } catch (e) { /* ignore */ }
   }
 
   function bindSyncEntry() {
