@@ -478,12 +478,13 @@
                 </div>
               </div>` : ''}
 
-            ${isBili ? renderMarkersBlock(item) : `
+            ${renderMarkersBlock(item)}
+            ${!isBili ? `
               <div class="side-block">
                 <div class="block-title">播放方式</div>
-                <div class="dim">抖音视频在站内不做节点标记，点击下方按钮到原平台播放。</div>
+                <div class="dim">抖音视频在站内不做播放，点击下方按钮到原平台观看。</div>
                 <button class="btn btn-primary btn-block" data-act="open-origin">在原平台播放 ↗</button>
-              </div>`}
+              </div>` : ''}
 
             <div class="side-block">
               <div class="block-title">笔记</div>
@@ -652,7 +653,8 @@
   function renderMarkersBlock(item) {
     const rows = item.markers.map(m => `
       <li class="marker-row">
-        <span class="marker-time" title="跳转播放">${D().formatTime(m.time)}</span>
+        <span class="marker-tag tag tag-${esc(m.cat || 'other')}">${esc(m.cat || '其他')}</span>
+        <span class="marker-time">${fmtMarkerTime(m.time)}</span>
         <button class="marker-label" data-act="marker-jump" data-mid="${m.id}" title="跳转到该节点">${esc(m.label)}</button>
         <button class="btn btn-xs btn-ghost" data-act="rename-marker" data-mid="${m.id}">改名</button>
         <button class="btn btn-xs btn-ghost-danger" data-act="del-marker" data-mid="${m.id}">删</button>
@@ -661,13 +663,20 @@
       <div class="side-block">
         <div class="block-title">
           关键节点 <span class="dim">(${item.markers.length})</span>
-          <button class="btn btn-sm btn-primary btn-inline" data-act="add-marker" title="在当前播放位置添加节点 (快捷键 n)">＋ 添加</button>
+          <button class="btn btn-sm btn-primary btn-inline" data-act="add-marker">＋ 添加</button>
         </div>
         ${item.markers.length
           ? `<ul class="marker-list">${rows}</ul>
-             <div class="dim marker-hint">添加时使用当前播放位置 · 点击节点跳转</div>`
-          : `<div class="dim">播放到重点位置时，点击「＋ 添加」或按 <kbd>n</kbd> 添加节点</div>`}
+             <div class="dim marker-hint">手动记录时间点 · 点击节点可跳转播放</div>`
+          : `<div class="dim">点「＋ 添加」手动记录重点时间点（如跟读、无字幕片段）</div>`}
       </div>`;
+  }
+
+  /** 时间显示格式：X分X秒 */
+  function fmtMarkerTime(sec) {
+    sec = Math.max(0, Math.floor(sec || 0));
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m > 0 ? `${m}分${s}秒` : `${s}秒`;
   }
 
   /** 刷新详情页状态区（播放器自动状态流转后调用） */
@@ -680,21 +689,70 @@
     }
   }
 
-  /* ---------- 节点动作（被播放器快捷键调用） ---------- */
+  /* ---------- 节点动作 ---------- */
 
+  const MARKER_CATS = ['跟读', '无字幕', '双语字幕', '生词', '其他'];
+
+  /** 手动添加节点弹窗：分/秒输入 + 分类选择（不依赖播放器） */
   function addMarkerAtCurrentTime() {
-    const v = App.Player.getVideo();
-    if (!v || App.state.view !== 'detail') { toast('请先在站内播放 B 站视频', true); return; }
     const item = App.state.data.videos.find(x => x.id === App.state.detailId);
-    if (!item || item.platform !== 'bilibili') { toast('仅 B 站视频支持节点标记', true); return; }
-    const time = v.currentTime;
-    const name = prompt('节点名称（如：核心语法、生词段落、跟读片段）', `节点 ${item.markers.length + 1}`);
-    if (!name) return;
-    const label = name.trim() || `节点 ${item.markers.length + 1}`;
-    item.markers.push({ id: App.Data.uid('m'), time, label, createdAt: Date.now() });
-    App.Storage.save(App.state.data);
-    renderDetail(item.id);
-    toast(`已添加节点「${label}」 @ ${D().formatTime(time)}`);
+    if (!item) return;
+    // 若播放器存在，预填当前时间
+    const v = App.Player.getVideo();
+    const curSec = v && !isNaN(v.currentTime) ? Math.floor(v.currentTime) : 0;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    App.UI.activeModal = overlay;
+    document.body.classList.add('modal-open');
+    overlay.innerHTML = `
+      <div class="modal">
+        <h3 class="modal-title">添加关键节点</h3>
+        <div class="modal-body">
+          <div class="form-row">
+            <span class="form-label">时间</span>
+            <input class="inp mk-min" type="number" min="0" max="999" value="${Math.floor(curSec / 60)}" style="width:70px"> 分
+            <input class="inp mk-sec" type="number" min="0" max="59" value="${curSec % 60}" style="width:70px"> 秒
+          </div>
+          <div class="form-row">
+            <span class="form-label">分类</span>
+            <select class="sel mk-cat">
+              ${MARKER_CATS.map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-row">
+            <span class="form-label">备注</span>
+            <input class="inp mk-label" placeholder="可选，如：核心语法（留空用分类名）" style="flex:1">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" data-act="cancel">取消</button>
+          <button class="btn btn-primary" data-act="ok">添加</button>
+        </div>
+      </div>`;
+    document.getElementById('modal-root').appendChild(overlay);
+    wireModalDismiss(overlay);
+    const $ = sel => overlay.querySelector(sel);
+    const minInp = $('.mk-min'), secInp = $('.mk-sec');
+    // 秒数超过 59 自动进位到分
+    secInp.addEventListener('input', () => {
+      const s = parseInt(secInp.value) || 0;
+      if (s >= 60) { minInp.value = (parseInt(minInp.value) || 0) + Math.floor(s / 60); secInp.value = s % 60; }
+    });
+    $('[data-act=cancel]').onclick = () => closeModal(overlay);
+    $('[data-act=ok]').onclick = () => {
+      const min = parseInt(minInp.value) || 0;
+      const sec = parseInt(secInp.value) || 0;
+      if (min < 0 || sec < 0 || sec > 59) { toast('时间无效', true); return; }
+      const time = min * 60 + sec;
+      const cat = $('.mk-cat').value;
+      const label = ($('.mk-label').value || '').trim() || cat;
+      item.markers.push({ id: App.Data.uid('m'), time, label, cat, createdAt: Date.now() });
+      App.Storage.save(App.state.data);
+      closeModal(overlay);
+      renderDetail(item.id);
+      toast(`已添加「${cat}：${fmtMarkerTime(time)}」`);
+    };
   }
 
   function jumpPrevMarker() { jumpMarker(-1); }

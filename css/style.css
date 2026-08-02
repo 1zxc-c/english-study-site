@@ -318,9 +318,14 @@ kbd {
 .marker-row { display: flex; align-items: center; gap: 8px; }
 .marker-time {
   font-variant-numeric: tabular-nums; color: var(--primary); font-weight: 600;
-  min-width: 48px; cursor: pointer;
+  min-width: 62px; cursor: pointer;
 }
 .marker-time:hover { text-decoration: underline; }
+.marker-tag { margin-left: 0; min-width: 52px; text-align: center; }
+.tag-跟读 { background: #dbeafe; color: #1d4ed8; }
+.tag-无字幕 { background: #fef3c7; color: #92400e; }
+.tag-双语字幕 { background: #dcfce7; color: #166534; }
+.tag-生词 { background: #fce7f3; color: #9d174d; }
 .marker-label {
   flex: 1; text-align: left; background: none; border: none; color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px 0;
