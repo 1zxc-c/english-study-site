@@ -12,7 +12,7 @@
  * 注意：本项目部署在 GitHub Pages 子路径（/english-study-site/）下，
  *       故所有缓存 key 都带相对路径语义，缓存名含版本以便更新。
  */
-const VERSION = 'v8';
+const VERSION = 'v9';
 const CACHE_NAME = 'english-study-' + VERSION;
 
 // 离线核心资源（相对路径 + 版本戳，适配任意部署子路径）
@@ -47,9 +47,10 @@ function withTimeout(promise, ms) {
 }
 
 self.addEventListener('install', e => {
+  // 容错预缓存：个别资源拉取失败不中断（弱网下避免 SW 安装失败导致无缓存可用）
   e.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(CORE_ASSETS))
+      .then(cache => Promise.allSettled(CORE_ASSETS.map(url => cache.add(url))))
       .then(() => self.skipWaiting())
   );
 });
@@ -62,14 +63,12 @@ self.addEventListener('activate', e => {
   );
 });
 
-// 新 SW 接管后：通知所有受控页面「清缓存 + 重载」→ 彻底顶掉旧 SW 喂的旧代码
+// 新 SW 接管后：收到 forceUpdate 只清缓存，不自动 reload（页面自己弹提示条，点击才刷新）
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'forceUpdate') {
     e.waitUntil(
       caches.keys()
         .then(keys => Promise.all(keys.map(k => caches.delete(k))))
-        .then(() => self.clients.matchAll({ type: 'window' }))
-        .then(clients => clients.forEach(c => c.postMessage({ type: 'forceReload' })))
     );
   }
 });

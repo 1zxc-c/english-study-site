@@ -6,7 +6,7 @@
   window.App = window.App || {};
 
   // 代码版本：与 index.html 脚本 ?v= 同步。缓存里旧代码版本不符时开机自检会强刷。
-  const APP_VERSION = '8';
+  const APP_VERSION = '9';
 
   /* ---------- 全局状态 ---------- */
 
@@ -97,18 +97,12 @@
     App.state.data = App.Storage.load();
     App.Player.bindShortcuts();
 
-    // 兜底自检后强刷进来的（?frc=1）：跳过可能误伤的自检，直接进入正常流程
-    if (location.search.indexOf('frc=1') >= 0) {
-      try { sessionStorage.removeItem('forcedReload'); localStorage.setItem('englishSite.appVer', APP_VERSION); } catch (e) { /* ignore */ }
-    }
-
-    // 开机自检：若本次加载的代码版本与本地记录不符（= 缓存喂了旧 JS），自动强制刷新
+    // 版本自检：缓存里是旧代码时不自动刷新（弱网下自动刷新会死循环成僵尸页），
+    // 改为页面顶部显示黄色提示条，点击才刷新。
     try {
       const saved = localStorage.getItem('englishSite.appVer');
-      if (saved && saved !== APP_VERSION && location.reload && !sessionStorage.getItem('forcedReload')) {
-        sessionStorage.setItem('forcedReload', '1');
-        location.reload();   // 重载即从网络拉最新 index.html + ?v=7 脚本
-        return;              // 后续 boot 不再执行（页面即将重载）
+      if (saved && saved !== APP_VERSION) {
+        showUpdateNotice();
       }
       localStorage.setItem('englishSite.appVer', APP_VERSION);
     } catch (e) { /* 存储不可用时忽略自检 */ }
@@ -163,18 +157,6 @@
       const tag = document.getElementById('ver-tag');
       if (tag) tag.textContent = 'v' + APP_VERSION;
     } catch (e) { /* ignore */ }
-
-    // 监听 SW「forceReload」消息 → 清缓存 + 重载，顶掉旧代码
-    try {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.addEventListener('message', e => {
-          if (e.data && e.data.type === 'forceReload') {
-            caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
-              .finally(() => location.reload());
-          }
-        });
-      }
-    } catch (e) { /* ignore */ }
   }
 
   function bindForceEntry() {
@@ -194,6 +176,26 @@
         location.reload();
       }
     });
+  }
+
+  /** 版本更新提示条：不自动刷新（弱网会死循环），点击才强制更新 */
+  function showUpdateNotice() {
+    const banner = document.createElement('div');
+    banner.id = 'update-notice';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#fef3c7;color:#92400e;padding:10px 16px;text-align:center;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);';
+    banner.innerHTML = '🔄 检测到新版本，点击此处刷新更新';
+    banner.onclick = () => {
+      // 点按钮：通知 SW 清缓存 + 重载
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'forceUpdate' });
+      }
+      if (window.caches) {
+        caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).finally(() => location.reload());
+      } else {
+        location.reload();
+      }
+    };
+    document.body.prepend(banner);
   }
 
   function bindSyncEntry() {

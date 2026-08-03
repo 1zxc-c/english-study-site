@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<link rel="stylesheet" href="css/style.css?v=8">
+<link rel="stylesheet" href="css/style.css?v=9">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -49,25 +49,33 @@
 
 <!-- 经典脚本，按依赖顺序加载（file 协议下 ES module 会被 CORS 拦截，故不用 module）
      APP_VERSION 用于开机自检：缓存里的旧代码会因版本不符被自动强刷 -->
-<script src="js/storage.js?v=8"></script>
-<script src="js/data.js?v=8"></script>
-<script src="js/parse.js?v=8"></script>
-<script src="js/bilibili.js?v=8"></script>
-<script src="js/review.js?v=8"></script>
-<script src="js/player.js?v=8"></script>
-<script src="js/notes.js?v=8"></script>
-<script src="js/sync.js?v=8"></script>
+<script src="js/storage.js?v=9"></script>
+<script src="js/data.js?v=9"></script>
+<script src="js/parse.js?v=9"></script>
+<script src="js/bilibili.js?v=9"></script>
+<script src="js/review.js?v=9"></script>
+<script src="js/player.js?v=9"></script>
+<script src="js/notes.js?v=9"></script>
+<script src="js/sync.js?v=9"></script>
 <script src="vendor/aliyun-oss-sdk.min.js"></script>
-<script src="js/oss.js?v=8"></script>
-<script src="js/ui.js?v=8"></script>
-<script src="js/app.js?v=8"></script>
+<script src="js/oss.js?v=9"></script>
+<script src="js/ui.js?v=9"></script>
+<script src="js/app.js?v=9"></script>
 <script>
-// 兜底自检：boot 正常会置 window.__APP_OK = true。8 秒内未就绪（= 旧缓存/坏代码）→ 带版本戳强刷一次
+// 兜底自检：boot 正常会置 window.__APP_OK = true。8 秒内未就绪（= 旧缓存/坏代码）
+// → 顶部显示黄色提示条（点击才刷新，弱网下不自动刷新，避免死循环成僵尸页）
 (function () {
   setTimeout(function () {
     if (window.__APP_OK) return;
-    if (location.search.indexOf('frc=1') >= 0) return;   // 已强刷过一次，不再循环
-    location.replace(location.pathname + '?frc=1' + location.hash);
+    var b = document.createElement('div');
+    b.id = 'boot-fail-notice';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#fef3c7;color:#92400e;padding:10px 16px;text-align:center;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);';
+    b.innerHTML = '⚠️ 页面加载不完整，点击此处强制刷新';
+    b.onclick = function () {
+      if (window.caches) { caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }); }
+      location.reload();
+    };
+    document.body.prepend(b);
   }, 8000);
 })();
 </script>
